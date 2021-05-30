@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>JS_canvas</title>
+	<style>
+		body {
+			margin: 0;
+			padding: 0;
+			width: 100vw;
+			height: 100vh;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			overflow: hidden;
+		}
+
+		#c1 {
+			border: 2px solid #000;
+			width: 1000px;
+			height: 500px;
+			/*transition: 0.15s;*/
+		}
+
+		.settings {
+			position: absolute;
+			top: 0;
+			left: 0;
+		}
+
+		.getColor_node {
+			position: absolute;
+			top: 10px;
+			left: 10px;
+		}
+	</style>
+</head>
+<body>
+
+	<!-- <input type="color" class="getColor_node"> -->
+
+	<canvas id="c1"></canvas>
+
+	<script>
+
+		function getNode(node) {
+			return document.querySelector(node)
+		}
+
+		function clearCanvas() {
+			ctx.clearRect(0, 0, canvasWidth, canvasHeight)
+		}
+
+		const getColor_node = getNode('.getColor_node')
+
+		const c1 = getNode('#c1')
+		const canvasWidth = 4000
+		const canvasHeight = 2000
+
+		const ctx = c1.getContext('2d')
+
+		c1.setAttribute('width', canvasWidth)
+		c1.setAttribute('height', canvasHeight)
+
+		//хот кеи
+
+		document.addEventListener('keydown', e => {
+			if(e.code === 'KeyQ') {
+				clearCanvas()
+			}
+
+			else if(e.code === 'KeyX') {
+				clearInterval(rectMovingInterval)
+			}
+
+			else if(e.code === 'KeyH') {
+				translateX = 0, translateY = 0, zoom = 1
+				c1.style.transform = `scale(${zoom}) translate(${translateX}px, ${translateY}px)`
+			}
+		})
+
+		// getColor_node.addEventListener('input', e => {
+		// 	color = getColor_node.value
+		// })
+
+		//симуляция движения частиц
+
+		const rectCount = 100, size = 5, startX = canvasWidth/2, startY = canvasHeight/2, rectColors = []
+
+		//создание координат ректов
+
+		const rectsOptions = [], rectPosXI = 0, rectPosYI = 1, rectColorI = 2
+
+		for(let i = 0; i < rectCount; i++) {
+
+			let r = 0, g = 0, b = 0, X = 0, Y = 0
+
+			while(1) {
+				r = Math.round(Math.random()*1000)
+				g = Math.round(Math.random()*1000)
+				b = Math.round(Math.random()*1000)
+
+				if(r < 256 && g < 256 && b < 256) {
+					break
+				}
+			}
+
+			while(1) {
+				X = Math.round(Math.random()*canvasWidth),
+				Y = Math.round(Math.random()*canvasHeight)
+
+				if(Math.pow(X - startX, 2) + Math.pow(Y - startY, 2) < Math.pow(1000, 2)) {
+					break
+				}
+			}
+
+			rectsOptions[i] = [X, Y, `rgb(${r}, ${g}, ${b})`]
+
+			ctx.fillStyle = rectsOptions[i][rectColorI]
+			ctx.fillRect(rectsOptions[i][rectPosXI], rectsOptions[i][rectPosYI], size, size)
+			ctx.beginPath()
+		}
+
+		//передвижение частиц
+
+		function rectMove(count, options, XI, YI, color, sz) {
+			for(let i = 0; i < count; i++) {
+
+				const moveDirection = Math.round(Math.random()*10)
+
+				switch(moveDirection) {
+					case 0 || 4:
+						options[i][XI] += sz
+						options[i][XI] >= canvasWidth ? options[i][XI] = 0 : {}
+						break
+					case 1 || 5:
+						options[i][YI] += sz
+						options[i][YI] >= canvasHeight ? options[i][YI] = 0 : {}
+						break
+					case 2 || 6:
+						options[i][XI] -= sz
+						options[i][XI] <= 0 ? options[i][XI] = canvasWidth : {}
+						break
+					case 3 || 7:
+						options[i][YI] -= sz
+						options[i][YI] <= 0 ? options[i][YI] = canvasHeight : {}
+						break
+				}
+
+				ctx.fillStyle = options[i][color]
+				ctx.fillRect(options[i][XI], options[i][YI], sz, sz)
+				ctx.beginPath()
+
+				// return options[i][rectPosXI], options[i][rectPosYI]
+			}
+		}
+
+		let isInterval = false, rectMovingInterval = 0
+
+		function rectMoving(speed = 1, rectsSpeed = 10) {
+			isInterval ? clearInterval(rectMovingInterval) : {}
+
+			rectMovingInterval = setInterval(() => {
+				isInterval = true
+				// clearCanvas()
+
+				for(let i = 0; i < rectsSpeed; i++) {
+					rectMove(rectCount, rectsOptions, rectPosXI, rectPosYI, rectColorI, size)
+				}
+
+
+				ctx.fillStyle = 'rgba(255, 255, 255, 0.005'
+				ctx.fillRect(0, 0, canvasWidth, canvasHeight)
+			}, speed)
+
+		}
+
+		rectMoving(1, 50)
+
+		//управление камерой
+
+		let zoom = 1, isMouseDownZoom = false, x = 0, y = 0
+
+		document.addEventListener('wheel', e => {
+
+			if(e.deltaY < 0) {
+				zoom *= 1.3
+
+				translateX += (window.innerWidth / 2 - e.clientX) * 100 / window.innerWidth / zoom * window.innerWidth / 335
+				translateY += (window.innerHeight / 2 - e.clientY) * 100 / window.innerHeight / zoom * window.innerHeight / 335
+			}
+
+			else {
+				zoom /= 1.3
+
+				translateX -= (window.innerWidth / 2 - e.clientX) * 100 / window.innerWidth / zoom * window.innerWidth / 335
+				translateY -= (window.innerHeight / 2 - e.clientY) * 100 / window.innerHeight / zoom * window.innerHeight / 335
+			}
+
+			c1.style.transform = `scale(${zoom}) translate(${translateX}px, ${translateY}px)`
+		})
+
+		let translateX = 0, translateY = 0
+
+		document.addEventListener('mousedown', e => {
+			if(e.button === 1 || e.ctrlKey) {
+				isMouseDownZoom = true
+				x = e.clientX
+				y = e.clientY
+			}
+		})
+
+		document.addEventListener('mouseup', e => {
+
+			isMouseDownZoom = false
+
+			if(e.button === 1 || e.ctrlKey) {
+
+				translateX += e.clientX / zoom - x / zoom
+				translateY += e.clientY / zoom - y / zoom
+			}
+		})
+
+		document.addEventListener('mousemove', e => {
+			if(isMouseDownZoom) {
+				c1.style.transform = `scale(${zoom}) translate(${translateX + e.clientX / zoom - x / zoom}px, ${translateY + e.clientY / zoom - y / zoom}px)`
+			}
+		})
+
+	</script>
+
+</body>
+</html>
